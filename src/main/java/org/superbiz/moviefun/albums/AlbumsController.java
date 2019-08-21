@@ -7,6 +7,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.superbiz.moviefun.blobstore.Blob;
+import org.superbiz.moviefun.blobstore.BlobStore;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -25,11 +27,12 @@ import static java.nio.file.Files.readAllBytes;
 public class AlbumsController {
 
     private final AlbumsBean albumsBean;
+    private final BlobStore blobStore;
 
-    public AlbumsController(AlbumsBean albumsBean) {
+    public AlbumsController(AlbumsBean albumsBean, BlobStore blobStore) {
         this.albumsBean = albumsBean;
+        this.blobStore = blobStore;
     }
-
 
     @GetMapping
     public String index(Map<String, Object> model) {
@@ -45,9 +48,22 @@ public class AlbumsController {
 
     @PostMapping("/{albumId}/cover")
     public String uploadCover(@PathVariable long albumId, @RequestParam("file") MultipartFile uploadedFile) throws IOException {
-        saveUploadToFile(uploadedFile, getCoverFile(albumId));
+//        saveUploadToFile(uploadedFile, getCoverFile(albumId));
+//        return format("redirect:/albums/%d", albumId);
 
+        if (uploadedFile.getSize() > 0) {
+            Blob coverBlob = new Blob(
+                getCoverBlobName(albumId),
+                uploadedFile.getInputStream(),
+                uploadedFile.getContentType()
+            );
+            blobStore.put(coverBlob);
+        }
         return format("redirect:/albums/%d", albumId);
+    }
+
+    private String getCoverBlobName(@PathVariable long albumId) {
+        return format("covers/%d", albumId);
     }
 
     @GetMapping("/{albumId}/cover")
